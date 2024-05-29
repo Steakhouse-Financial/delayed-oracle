@@ -4,6 +4,9 @@ pragma solidity ^0.8.13;
 import {Test, console} from "forge-std/Test.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
+import {IMorpho} from "../lib/morpho-blue/src/interfaces/IMorpho.sol";
+import {Morpho} from "../lib/morpho-blue/src/Morpho.sol";
+
 import {DelayedERC4626Oracle} from "../src/DelayedERC4626Oracle.sol";
 
 import {MockERC20} from "./mock/MockERC20.sol";
@@ -25,6 +28,9 @@ contract DelayedERC4626OracleTest is Test {
     IERC4626 public erc4626;
 
     uint256 DELAY = 5;
+
+    // For Morpho integration tests
+    Morpho public morpho;
 
     function setUp() public {
         erc20 = new MockERC20();
@@ -114,4 +120,6 @@ contract DelayedERC4626OracleTest is Test {
             "Oracle price is now 2 ether + dust"
         );
     }
+
+    function testMorphoIntegration() public {}
 }

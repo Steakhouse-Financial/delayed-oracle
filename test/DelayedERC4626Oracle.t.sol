@@ -103,7 +103,11 @@ contract DelayedERC4626OracleTest is Test {
         vm.roll(vm.getBlockNumber() + 1);
         assertEq(oracle.price(), 2 ether, "Oracle price is still 2 ether");
 
-        vm.roll(vm.getBlockNumber() + 1);
+        // Check that we can't update again before the end of the delay
+        vm.expectRevert();
+        oracle.update();
+
+        vm.roll(vm.getBlockNumber() + 29);
         assertEq(
             oracle.price(),
             2 ether + 99,

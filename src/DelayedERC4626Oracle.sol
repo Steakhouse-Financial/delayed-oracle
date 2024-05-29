@@ -6,7 +6,7 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 /// @title DelayedOracle wraps an underlying IERC4626 and return the price in a delayed way
 /// @notice The contract must be updated manually (price update) by calling the permissionless update function.
-/// @dev Not all Chainlink interface behavior are implemented, all answers are always round 0.
+/// @dev Only implements what is needed from ERC4626 to be used in Morpho Oracle Factory V2
 contract DelayedERC4626Oracle is MinimalERC4626 {
     IERC4626 public immutable underlying;
     uint256 public immutable delay;

@@ -24,6 +24,8 @@ contract DelayedERC4626Oracle is MinimalERC4626 {
         nextPrice = underlying.convertToAssets(underlyingFactor);
     }
 
+    /// @notice Update the next price of the underlying ERC4626
+    /// @dev You can't call this function until the previous delay is exhausted
     function update() public {
         require(
             block.number >= nextPriceBlock,
@@ -34,7 +36,6 @@ contract DelayedERC4626Oracle is MinimalERC4626 {
         nextPriceBlock = block.number + delay;
     }
 
-    /// @notice
     /// @return price The previous price if delay is not passed yet, next price otherwise
     function price() public view returns (uint256) {
         return (block.number >= nextPriceBlock) ? nextPrice : prevPrice;
@@ -43,6 +44,8 @@ contract DelayedERC4626Oracle is MinimalERC4626 {
     /////////////////////////////////////////
     // MinimalERC4626 implementation
     /////////////////////////////////////////
+
+    /// @dev Function that will be used by Morpho
     function convertToAssets(uint256 shares) external view returns (uint256) {
         return (price() * shares) / underlyingFactor;
     }

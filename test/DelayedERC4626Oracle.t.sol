@@ -66,12 +66,12 @@ contract DelayedERC4626OracleTest is Test {
         );
         assertEq(oracle.nextPrice(), 2 ether, "but next price will be 2 ether");
         assertEq(
-            oracle.nextPriceBlock(),
-            vm.getBlockNumber() + DELAY,
+            oracle.nextPriceTimestamp(),
+            block.timestamp + DELAY,
             "price will change in DELAY blocks"
         );
 
-        vm.roll(vm.getBlockNumber() + DELAY - 1);
+        vm.warp(vm.getBlockTimestamp() + DELAY - 1);
 
         assertEq(
             oracle.price(),
@@ -79,12 +79,12 @@ contract DelayedERC4626OracleTest is Test {
             "DELAY-1 blocks is not enough to change price"
         );
 
-        vm.roll(vm.getBlockNumber() + 1);
+        vm.warp(vm.getBlockTimestamp() + 1);
 
         assertEq(oracle.price(), 2 ether, "Oracle price is now 2 ether");
 
         // After a long long time
-        vm.roll(vm.getBlockNumber() + 10_000_000_000);
+        vm.warp(vm.getBlockTimestamp() + 10_000_000_000);
 
         assertEq(oracle.price(), 2 ether, "Oracle price is still 2 ether");
 
@@ -94,20 +94,20 @@ contract DelayedERC4626OracleTest is Test {
         assertEq(erc4626.price(), 2 ether + 99, "Price is now 2 ether + dust");
 
         // Forgot to update
-        vm.roll(vm.getBlockNumber() + 1_000);
+        vm.warp(vm.getBlockTimestamp() + 1_000);
         assertEq(oracle.price(), 2 ether, "Oracle price is still 2 ether");
 
         // Finally update
         oracle.update();
 
-        vm.roll(vm.getBlockNumber() + 1);
+        vm.warp(vm.getBlockTimestamp() + 1);
         assertEq(oracle.price(), 2 ether, "Oracle price is still 2 ether");
 
         // Check that we can't update again before the end of the delay
         vm.expectRevert();
         oracle.update();
 
-        vm.roll(vm.getBlockNumber() + DELAY - 1);
+        vm.warp(vm.getBlockTimestamp() + DELAY - 1);
         assertEq(
             oracle.price(),
             2 ether + 99,

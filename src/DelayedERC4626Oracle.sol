@@ -8,15 +8,19 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 /// @notice The contract must be updated manually (price update) by calling the permissionless update function.
 /// @dev Only implements what is needed from ERC4626 to be used in Morpho Oracle Factory V2
 contract DelayedERC4626Oracle is MinimalERC4626 {
+    event Update(uint256 nextPriceTimestamp, uint256 nextPrice);
+
     IERC4626 public immutable underlying;
     uint256 public immutable delay;
 
     uint256 public prevPrice;
     uint256 public nextPrice;
-    uint256 public nextPriceBlock;
+    uint256 public nextPriceTimestamp;
 
     uint256 private immutable underlyingFactor;
 
+    /// @param underlying_ Underlying ERC4626 on which returning the conversion price with a delay
+    /// @param delay_ delay in seconds
     constructor(IERC4626 underlying_, uint256 delay_) {
         underlying = underlying_;
         delay = delay_;
@@ -28,17 +32,19 @@ contract DelayedERC4626Oracle is MinimalERC4626 {
     /// @dev You can't call this function until the previous delay is exhausted
     function update() public {
         require(
-            block.number >= nextPriceBlock,
+            block.timestamp >= nextPriceTimestamp,
             "Can only update after the delay is passed"
         );
         prevPrice = nextPrice;
         nextPrice = underlying.convertToAssets(underlyingFactor);
-        nextPriceBlock = block.number + delay;
+        nextPriceTimestamp = block.timestamp + delay;
+
+        emit Update(nextPriceTimestamp, nextPrice);
     }
 
     /// @return price The previous price if delay is not passed yet, next price otherwise
     function price() public view returns (uint256) {
-        return (block.number >= nextPriceBlock) ? nextPrice : prevPrice;
+        return (block.timestamp >= nextPriceTimestamp) ? nextPrice : prevPrice;
     }
 
     /////////////////////////////////////////

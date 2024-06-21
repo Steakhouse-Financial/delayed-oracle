@@ -60,7 +60,8 @@ contract DelayedERC4626OracleMorphoIntegrationTest is Test {
             bytes32(0)
         );
 
-        lltv = 980000000000000000;
+        // low lltv chosen so we can double the ERC4626 price
+        lltv = 385000000000000000;
         marketParams = MarketParams(
             address(erc4626),
             address(erc20),
@@ -71,10 +72,10 @@ contract DelayedERC4626OracleMorphoIntegrationTest is Test {
 
         morpho.createMarket(marketParams);
 
-        // Create 5 erc20 and 1 erc4626
-        erc20.mint(address(this), 5 ether);
+        // Create 10 erc20 and 1 erc4626
+        erc20.mint(address(this), 12 ether);
         erc20.approve(address(erc4626), type(uint256).max);
-        erc4626.deposit(1 ether, address(this));
+        erc4626.deposit(2 ether, address(this));
 
         // We approve Morpho for both erc20 and erc4626
         erc20.approve(address(morpho), type(uint256).max);
@@ -83,13 +84,13 @@ contract DelayedERC4626OracleMorphoIntegrationTest is Test {
 
     /// @notice Shows that liquidations work fine with the interest accruing
     function testLiquidationFromInterests() public {
-        morpho.supply(marketParams, 0.98 ether, 0, address(this), "");
+        morpho.supply(marketParams, 1 ether, 0, address(this), "");
 
         morpho.supplyCollateral(marketParams, 1 ether, address(this), "");
 
         morpho.borrow(
             marketParams,
-            0.98 ether,
+            0.385 ether,
             0,
             address(this),
             address(this)
@@ -102,8 +103,8 @@ contract DelayedERC4626OracleMorphoIntegrationTest is Test {
         vm.expectRevert();
         morpho.liquidate(marketParams, address(this), 0, p.borrowShares, "");
 
-        // Move forward in time so we can liquidate
-        vm.warp(vm.getBlockTimestamp() + 24 * 3600);
+        // Move forward 1 second in time so we can liquidate
+        vm.warp(vm.getBlockTimestamp() + 1);
 
         morpho.liquidate(marketParams, address(this), 0, p.borrowShares, "");
 
@@ -113,13 +114,13 @@ contract DelayedERC4626OracleMorphoIntegrationTest is Test {
 
     /// @notice Shows that liquidations work fine with the erc4626 increasing in price
     function testLiquidationFromGift() public {
-        morpho.supply(marketParams, 0.98 ether, 0, address(this), "");
+        morpho.supply(marketParams, 1 ether, 0, address(this), "");
 
         morpho.supplyCollateral(marketParams, 1 ether, address(this), "");
 
         morpho.borrow(
             marketParams,
-            0.98 ether,
+            0.30 ether, // We let room for some interest to accrue
             0,
             address(this),
             address(this)
@@ -133,7 +134,7 @@ contract DelayedERC4626OracleMorphoIntegrationTest is Test {
         morpho.liquidate(marketParams, address(this), 0, p.borrowShares, "");
 
         // Will double the unit price of erc4626
-        erc20.transfer(address(erc4626), 0.01 ether + 1); // +1 due to the 1 virtual share of ERC4626 impl
+        erc20.transfer(address(erc4626), 2 ether + 1); // +1 due to the 1 virtual share of ERC4626 impl
 
         oracle.update();
         assertEq(oracle.price(), 1 ether, "Price unchanged for now");
@@ -143,7 +144,7 @@ contract DelayedERC4626OracleMorphoIntegrationTest is Test {
         morpho.liquidate(marketParams, address(this), 0, p.borrowShares, "");
 
         // Make sure that 29 block later it's still not good.
-        vm.roll(vm.getBlockNumber() + DELAY - 1);
+        vm.warp(vm.getBlockTimestamp() + DELAY - 1);
 
         assertEq(oracle.price(), 1 ether, "Price unchanged for now");
 
@@ -152,9 +153,9 @@ contract DelayedERC4626OracleMorphoIntegrationTest is Test {
         morpho.liquidate(marketParams, address(this), 0, p.borrowShares, "");
 
         // But after DELAY + 1 block it can be liquidated as price increased
-        vm.roll(vm.getBlockNumber() + 1);
+        vm.warp(vm.getBlockTimestamp() + 1);
 
-        assertEq(oracle.price(), 1.01 ether, "Price updated");
+        assertEq(oracle.price(), 2 ether, "Price updated");
 
         // Shouldn't allow liquidation yet
         morpho.liquidate(marketParams, address(this), 0, p.borrowShares, "");
